@@ -7,6 +7,7 @@
 
 import UIKit
 import SnapKit
+import Kingfisher
 import Combine
 
 //MARK: - MainViewController
@@ -18,6 +19,7 @@ class MainViewController: UIViewController {
     private var subscriber: AnyCancellable?
 
     private var cat = Cat()
+    private var dog = Dog()
 
     //MARK: - UI Properties
 
@@ -164,7 +166,7 @@ class MainViewController: UIViewController {
         case 0:
             setupCatFact()
         case 1:
-            break
+            setupDogMessage()
         default:
             break
         }
@@ -197,6 +199,14 @@ class MainViewController: UIViewController {
 
     }
 
+    private func setupDogMessage() {
+
+        let imageUrlString = fetchDogMessage()
+        let imageUrl: URL? = URL(string: imageUrlString)
+        contentImageView.kf.setImage(with: imageUrl)
+        
+    }
+
     private func fetchCatFact() -> String {
 
         subscriber = DataManager().catPublisher
@@ -209,6 +219,21 @@ class MainViewController: UIViewController {
         guard let catFact = cat.fact else { return "" }
 
         return catFact
+
+    }
+
+    private func fetchDogMessage() -> String {
+
+        subscriber = DataManager().dogPublisher
+            .sink(receiveCompletion: { _ in }, receiveValue: { dog in
+                DispatchQueue.main.async {
+                    self.dog = dog
+                }
+            })
+
+        guard let dogMessage = dog.message else { return "" }
+
+        return dogMessage
 
     }
 
