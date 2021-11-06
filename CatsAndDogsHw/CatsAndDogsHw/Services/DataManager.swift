@@ -13,6 +13,7 @@ import Combine
 class DataManager {
 
     private let catUrl = "https://catfact.ninja/fact"
+    private let dogUrl = "https://dog.ceo/api/breeds/image/random"
 
     var catPublisher: AnyPublisher<Cat, Error> {
         let url = URL(string: catUrl)!
@@ -20,6 +21,16 @@ class DataManager {
         return URLSession.shared.dataTaskPublisher(for: url)
             .map { $0.data }
             .decode(type: Cat.self, decoder: JSONDecoder())
+            .receive(on: RunLoop.main)
+            .eraseToAnyPublisher()
+    }
+
+    var dogPublisher: AnyPublisher<Dog, Error> {
+        let url = URL(string: dogUrl)!
+
+        return URLSession.shared.dataTaskPublisher(for: url)
+            .map { $0.data }
+            .decode(type: Dog.self, decoder: JSONDecoder())
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
     }
