@@ -16,16 +16,27 @@ class MainViewController: UIViewController {
 
     //MARK: - Private Properties
 
-    private var subscriber: AnyCancellable?
+    private var serviceSubscriber: AnyCancellable?
+    private var segmentedControlSubscriber: AnyCancellable?
+    private var catSubscriber: AnyCancellable?
+    private var dogSubscriber: AnyCancellable?
+    private var resetButtonSubscriber: AnyCancellable?
 
-    private var cat = Cat()
-    private var dog = Dog()
+    @Published private var currentSegmentIndex: Int = 0
+
+    @Published private var cat = Cat()
+    @Published private var dog = Dog()
+
+    @Published private var catsCount = 0
+    @Published private var dogsCount = 0
 
     //MARK: - UI Properties
 
-    private var segmentedControl: UISegmentedControl = {
+    private lazy var segmentedControl: UISegmentedControl = {
         let segment = UISegmentedControl(items: ["Cats", "Dogs"])
-
+        segment.selectedSegmentIndex = 0
+        segment.addTarget(self, action: #selector(self.segmentedValueChanged(_:)), for: .valueChanged)
+        
         return segment
     }()
 
@@ -61,7 +72,6 @@ class MainViewController: UIViewController {
 
     private var countOfAnimalsLabel: UILabel = {
         let label = UILabel()
-        label.text = "nothing so far..."
         label.numberOfLines = 0
         label.textAlignment = .center
 
@@ -73,9 +83,6 @@ class MainViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        title = "Cats and dogs"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Reset", style: .plain, target: self, action: #selector(resetButtonTapped))
-
         setupUI()
 
     }
@@ -84,6 +91,9 @@ class MainViewController: UIViewController {
 
     func setupUI() {
 
+        title = "Cats and dogs"
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Reset", style: .plain, target: self, action: #selector(resetButtonTapped))
+        countOfAnimalsLabel.text = "Score: \(catsCount) cats and \(dogsCount) dogs"
         contentImageView.isHidden = true
 
         view.addSubview(segmentedControl)
@@ -126,50 +136,48 @@ class MainViewController: UIViewController {
             make.trailing.equalToSuperview().inset(22)
         }
 
-        setupSegmentedControl()
+        configureContentView()
+        updateCountOfCats()
+        updateCountOfDogs()
 
     }
 
-    func setupSegmentedControl() {
+    func configureContentView() {
 
-        segmentedControl.selectedSegmentIndex = 0
-        segmentedControl.addTarget(self, action: #selector(self.segmentedValueChanged(_:)), for: .valueChanged)
+        segmentedControlSubscriber = $currentSegmentIndex
+            .receive(on: DispatchQueue.main)
+            .sink (receiveCompletion: { _ in }, receiveValue: { index in
+                switch index {
+                case 0:
+                    self.contentTextView.isHidden = false
+                    self.contentImageView.isHidden = true
+                case 1:
+                    self.contentTextView.isHidden = true
+                    self.contentImageView.isHidden = false
+                default:
+                    break
+                }
+            })
+        
+    }
+
+    func updateCountOfCats() {
+
+        catSubscriber = $catsCount
+            .receive(on: DispatchQueue.main)
+            .sink { value in
+                self.countOfAnimalsLabel.text = "Score: \(value) cats and \(self.dogsCount) dogs"
+            }
 
     }
 
-    //MARK: - @objc Methods
+    func updateCountOfDogs() {
 
-    @objc func segmentedValueChanged (_ sender: UISegmentedControl!) {
-
-        switch sender.selectedSegmentIndex {
-        case 0:
-            contentTextView.isHidden = false
-            contentImageView.isHidden = true
-        case 1:
-            contentTextView.isHidden = true
-            contentImageView.isHidden = false
-        default:
-            break
-        }
-
-    }
-
-    @objc func resetButtonTapped() {
-
-    }
-
-    @objc func moreButtonTapped(sender: UIButton) {
-
-        animateMoreButton(sender: sender)
-
-        switch segmentedControl.selectedSegmentIndex {
-        case 0:
-            setupCatFact()
-        case 1:
-            setupDogMessage()
-        default:
-            break
-        }
+        dogSubscriber = $dogsCount
+            .receive(on: DispatchQueue.main)
+            .sink { value in
+                self.countOfAnimalsLabel.text = "Score: \(self.catsCount) cats and \(value) dogs"
+            }
 
     }
 
@@ -190,51 +198,72 @@ class MainViewController: UIViewController {
 
     }
 
+    //MARK: - @objc Methods
+
+    @objc func segmentedValueChanged (_ sender: UISegmentedControl!) {
+        currentSegmentIndex = sender.selectedSegmentIndex
+    }
+
+    @objc func resetButtonTapped() {
+
+        catsCount = 0
+        dogsCount = 0
+
+    }
+
+    @objc func moreButtonTapped(sender: UIButton) {
+
+        animateMoreButton(sender: sender)
+
+        switch segmentedControl.selectedSegmentIndex {
+        case 0:
+            self.setupCatFact()
+            self.catsCount += 1
+        case 1:
+            self.setupDogMessage()
+            self.dogsCount += 1
+        default:
+            break
+        }
+
+    }
+
     //MARK: - Private
 
     private func setupCatFact() {
 
-        contentTextView.text = fetchCatFact()
+        fetchCatFact()
+        contentTextView.text = cat.fact
         contentTextView.centerText()
 
     }
 
     private func setupDogMessage() {
 
-        let imageUrlString = fetchDogMessage()
+        fetchDogMessage()
+        guard let imageUrlString = dog.message else { return }
         let imageUrl: URL? = URL(string: imageUrlString)
         contentImageView.kf.setImage(with: imageUrl)
         
     }
 
-    private func fetchCatFact() -> String {
+    private func fetchCatFact() {
 
-        subscriber = DataManager().catPublisher
+        serviceSubscriber = DataManager().catPublisher
+            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { _ in }, receiveValue: { cat in
-                DispatchQueue.main.async {
-                    self.cat = cat
-                }
+                self.cat = cat
             })
-
-        guard let catFact = cat.fact else { return "" }
-
-        return catFact
 
     }
 
-    private func fetchDogMessage() -> String {
+    private func fetchDogMessage() {
 
-        subscriber = DataManager().dogPublisher
+        serviceSubscriber = DataManager().dogPublisher
+            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { _ in }, receiveValue: { dog in
-                DispatchQueue.main.async {
-                    self.dog = dog
-                }
+                self.dog = dog
             })
-
-        guard let dogMessage = dog.message else { return "" }
-
-        return dogMessage
-
     }
 
 }

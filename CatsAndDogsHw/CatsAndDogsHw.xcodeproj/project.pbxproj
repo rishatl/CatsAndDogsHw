@@ -96,12 +96,12 @@
 				4557AC762736FCD400829881 /* Utilities */,
 				4557AC592736D91F00829881 /* Services */,
 				4557AC582736D91900829881 /* Models */,
-				45B0CA6A273428FA007AC6F4 /* AppDelegate.swift */,
-				45B0CA6C273428FA007AC6F4 /* SceneDelegate.swift */,
 				45B0CA6E273428FA007AC6F4 /* MainViewController.swift */,
 				45B0CA7327342906007AC6F4 /* Assets.xcassets */,
 				45B0CA7527342906007AC6F4 /* LaunchScreen.storyboard */,
 				45B0CA8927342FE1007AC6F4 /* Main.storyboard */,
+				45B0CA6C273428FA007AC6F4 /* SceneDelegate.swift */,
+				45B0CA6A273428FA007AC6F4 /* AppDelegate.swift */,
 				45B0CA7827342906007AC6F4 /* Info.plist */,
 			);
 			path = CatsAndDogsHw;

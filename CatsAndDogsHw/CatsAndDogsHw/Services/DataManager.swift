@@ -19,7 +19,7 @@ class DataManager {
         let url = URL(string: catUrl)!
 
         return URLSession.shared.dataTaskPublisher(for: url)
-            .map { $0.data }
+            .compactMap { $0.data }
             .decode(type: Cat.self, decoder: JSONDecoder())
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
@@ -29,7 +29,7 @@ class DataManager {
         let url = URL(string: dogUrl)!
 
         return URLSession.shared.dataTaskPublisher(for: url)
-            .map { $0.data }
+            .compactMap { $0.data }
             .decode(type: Dog.self, decoder: JSONDecoder())
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
